@@ -89,7 +89,9 @@ const VerticalNavHeader = (props: Props) => {
   const menuHeaderPaddingLeft = () => {
     if (navCollapsed && !navHover) {
       if (userNavMenuBranding) {
-        return 0
+        /* NOTE: update padding left width */
+        // return 0
+        return (collapsedNavWidth - navigationBorderWidth - 40) / 8
       } else {
         return (collapsedNavWidth - navigationBorderWidth - 40) / 8
       }
