@@ -18,8 +18,10 @@ import HorizontalNavItems from 'src/navigation/horizontal'
 // import ServerSideVerticalNavItems from './components/vertical/ServerSideNavItems'
 // import ServerSideHorizontalNavItems from './components/horizontal/ServerSideNavItems'
 
-import VerticalAppBarContent from './components/vertical/AppBarContent'
-import HorizontalAppBarContent from './components/horizontal/AppBarContent'
+import VerticalAppBarContent from 'src/layouts//components/vertical/AppBarContent'
+import HorizontalAppBarContent from 'src/layouts//components/horizontal/AppBarContent'
+import AppBrand from 'src/layouts/components/AppBrand'
+import FooterContent from 'src/layouts/components/FooterContent'
 
 // ** Hook Import
 import { useSettings } from 'src/@core/hooks/useSettings'
@@ -59,6 +61,7 @@ const UserLayout = ({ children, contentHeightFixed }: Props) => {
       contentHeightFixed={contentHeightFixed}
       verticalLayoutProps={{
         navMenu: {
+          branding: props => <AppBrand {...props} />,
           navItems: VerticalNavItems()
 
           // Uncomment the below line when using server-side menu in vertical layout and comment the above line
@@ -88,6 +91,10 @@ const UserLayout = ({ children, contentHeightFixed }: Props) => {
           }
         }
       })}
+      scrollToTop={() => null}
+      footerProps={{
+        content: () => <FooterContent />
+      }}
     >
       {children}
     </Layout>
