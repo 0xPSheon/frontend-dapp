@@ -3,21 +3,25 @@ import { HorizontalNavItemsType } from 'src/@core/layouts/types'
 
 const navigation = (): HorizontalNavItemsType => [
   {
-    title: 'Home',
-    path: '/home',
-    icon: 'mdi:home-outline'
-  },
-  {
-    title: 'Second Page',
-    path: '/second-page',
-    icon: 'mdi:email-outline'
-  },
-  {
-    path: '/acl',
+    title: 'Mint',
+    path: '/mint',
+    icon: 'mdi:home-outline',
     action: 'read',
-    subject: 'client-page',
-    title: 'Access Control',
-    icon: 'mdi:shield-outline'
+    subject: 'public-page'
+  },
+  {
+    title: 'Check Whitelist',
+    path: '/check-whitelist',
+    icon: 'mdi:book-check',
+    action: 'read',
+    subject: 'public-page'
+  },
+  {
+    path: '/dashboard',
+    title: 'Dashboard',
+    icon: 'mdi:view-dashboard-outline',
+    action: 'read',
+    subject: 'authenticated-page'
   }
 ]
 
