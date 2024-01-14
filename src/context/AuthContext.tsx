@@ -4,24 +4,45 @@ import { createContext, useEffect, useState, ReactNode } from 'react'
 // ** Next Import
 import { useRouter } from 'next/router'
 
-// ** Axios
-import axios from 'axios'
+// ** Third Party Imports
+import axios, { AxiosResponse, AxiosError } from 'axios'
+import toast from 'react-hot-toast'
 
 // ** Config
 import authConfig from 'src/configs/auth'
 
 // ** Types
-import { AuthValuesType, RegisterParams, LoginParams, ErrCallbackType, UserDataType } from './types'
+import {
+  AuthValuesType,
+  RequestMessageParamsType,
+  RequestMessageResponseType,
+  ConnectWalletParamsType,
+  ConnectWalletResponseType,
+  GetMeUserDataResponseType,
+  UserDataType
+} from 'src/context/types'
 
 // ** Defaults
+const defaultUserData = {
+  id: 0,
+  provider: 'local',
+  address: '0x0',
+  username: 'Anonymous',
+  blocked: false,
+  confirmed: true,
+  isHighlighted: false,
+  createdAt: '2021-08-30T07:00:00.000Z',
+  updatedAt: '2021-08-30T07:00:00.000Z',
+  role: 'Public'
+}
 const defaultProvider: AuthValuesType = {
-  user: null,
+  user: defaultUserData,
   loading: true,
-  setUser: () => null,
+  setUser: () => defaultUserData,
   setLoading: () => Boolean,
-  login: () => Promise.resolve(),
-  logout: () => Promise.resolve(),
-  register: () => Promise.resolve()
+  requestMessage: () => Promise.resolve(''),
+  connectWallet: () => Promise.resolve(),
+  disconnectWallet: () => Promise.resolve()
 }
 
 const AuthContext = createContext(defaultProvider)
@@ -32,7 +53,7 @@ type Props = {
 
 const AuthProvider = ({ children }: Props) => {
   // ** States
-  const [user, setUser] = useState<UserDataType | null>(defaultProvider.user)
+  const [user, setUser] = useState<UserDataType>(defaultProvider.user)
   const [loading, setLoading] = useState<boolean>(defaultProvider.loading)
 
   // ** Hooks
@@ -40,28 +61,35 @@ const AuthProvider = ({ children }: Props) => {
 
   useEffect(() => {
     const initAuth = async (): Promise<void> => {
+      axios.defaults.baseURL = (process.env.NEXT_PUBLIC_BACKEND_URL as string) || 'http://localhost:1337'
+
       const storedToken = window.localStorage.getItem(authConfig.storageTokenKeyName)!
+
       if (storedToken) {
         setLoading(true)
         await axios
           .get(authConfig.meEndpoint, {
             headers: {
-              Authorization: storedToken
+              Authorization: `Bearer ${storedToken}`
+            },
+            params: {
+              populate: ['role']
             }
           })
-          .then(async response => {
+          .then(async (response: AxiosResponse<GetMeUserDataResponseType>) => {
             setLoading(false)
-            setUser({ ...response.data.userData })
+            setUser({ ...response.data, role: response.data.role!.name })
           })
           .catch(() => {
             localStorage.removeItem('userData')
             localStorage.removeItem('refreshToken')
             localStorage.removeItem('accessToken')
-            setUser(null)
+            setUser(defaultUserData)
             setLoading(false)
-            if (authConfig.onTokenExpiration === 'logout' && !router.pathname.includes('login')) {
-              router.replace('/login')
-            }
+
+            // if (authConfig.onTokenExpiration === 'logout' && !router.pathname.includes('login')) {
+            //   router.replace('/auth/login')
+            // }
           })
       } else {
         setLoading(false)
@@ -72,46 +100,44 @@ const AuthProvider = ({ children }: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleLogin = (params: LoginParams, errorCallback?: ErrCallbackType) => {
-    axios
-      .post(authConfig.loginEndpoint, params)
-      .then(async response => {
-        params.rememberMe
-          ? window.localStorage.setItem(authConfig.storageTokenKeyName, response.data.accessToken)
-          : null
-        const returnUrl = router.query.returnUrl
-
-        setUser({ ...response.data.userData })
-        params.rememberMe ? window.localStorage.setItem('userData', JSON.stringify(response.data.userData)) : null
-
-        const redirectURL = returnUrl && returnUrl !== '/' ? returnUrl : '/'
-
-        router.replace(redirectURL as string)
-      })
-
-      .catch(err => {
-        if (errorCallback) errorCallback(err)
-      })
+  const handleRequestMessage = (params: RequestMessageParamsType): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      axios
+        .post(authConfig.requestMessageEndpoint, params)
+        .then((response: AxiosResponse<RequestMessageResponseType>) => {
+          resolve(response.data.message)
+        })
+        .catch((error: AxiosError) => {
+          reject(error)
+        })
+    })
   }
 
-  const handleLogout = () => {
-    setUser(null)
+  const handleConnectWallet = (params: ConnectWalletParamsType): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      axios
+        .post(authConfig.connectWalletEndpoint, params)
+        .then((response: AxiosResponse<ConnectWalletResponseType>) => {
+          window.localStorage.setItem(authConfig.storageTokenKeyName, response.data.accessToken)
+
+          setUser({ ...response.data.userData, role: response.data.userData.role!.name })
+          window.localStorage.setItem('userData', JSON.stringify(response.data.userData))
+
+          toast.success(`嗨，${response.data.userData.username}～歡迎回來`)
+
+          resolve()
+        })
+        .catch((error: AxiosError) => {
+          reject(error)
+        })
+    })
+  }
+
+  const handleDisconnectWallet = () => {
+    setUser(defaultUserData)
     window.localStorage.removeItem('userData')
     window.localStorage.removeItem(authConfig.storageTokenKeyName)
-    router.push('/login')
-  }
-
-  const handleRegister = (params: RegisterParams, errorCallback?: ErrCallbackType) => {
-    axios
-      .post(authConfig.registerEndpoint, params)
-      .then(res => {
-        if (res.data.error) {
-          if (errorCallback) errorCallback(res.data.error)
-        } else {
-          handleLogin({ email: params.email, password: params.password })
-        }
-      })
-      .catch((err: { [key: string]: string }) => (errorCallback ? errorCallback(err) : null))
+    router.push('/')
   }
 
   const values = {
@@ -119,9 +145,9 @@ const AuthProvider = ({ children }: Props) => {
     loading,
     setUser,
     setLoading,
-    login: handleLogin,
-    logout: handleLogout,
-    register: handleRegister
+    requestMessage: handleRequestMessage,
+    connectWallet: handleConnectWallet,
+    disconnectWallet: handleDisconnectWallet
   }
 
   return <AuthContext.Provider value={values}>{children}</AuthContext.Provider>
