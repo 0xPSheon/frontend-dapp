@@ -34,7 +34,9 @@
   // Extension: cSpell
   "cSpell.words": [
     "customizer",
-    "psheon"
+    "psheon",
+    "wagmi",
+    "webp"
   ],
   "markdown.extension.toc.updateOnSave": false
 }
