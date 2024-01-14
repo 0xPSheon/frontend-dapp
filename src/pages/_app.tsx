@@ -25,6 +25,15 @@ import themeConfig from 'src/configs/themeConfig'
 // ** Fake-DB Import
 // import 'src/@fake-db'
 
+// ** Wagmi Imports
+import { WagmiConfig, createConfig, configureChains } from 'wagmi'
+import { mainnet, goerli } from 'wagmi/chains'
+import { infuraProvider } from 'wagmi/providers/infura'
+import { publicProvider } from 'wagmi/providers/public'
+import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
+import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
+
 // ** Third Party Import
 import { Toaster } from 'react-hot-toast'
 
@@ -75,6 +84,34 @@ type GuardProps = {
 }
 
 const clientSideEmotionCache = createEmotionCache()
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [mainnet, goerli],
+  [infuraProvider({ apiKey: process.env.NEXT_PUBLIC_INFURA_API_KEY as string }), publicProvider()]
+)
+
+const wagmiConfig = createConfig({
+  autoConnect: true,
+  connectors: [
+    new MetaMaskConnector({ chains }),
+    new WalletConnectConnector({
+      chains,
+      options: {
+        projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID as string,
+        qrModalOptions: {
+          themeMode: 'dark'
+        }
+      }
+    }),
+    new CoinbaseWalletConnector({
+      chains,
+      options: {
+        appName: 'NFT'
+      }
+    })
+  ],
+  publicClient,
+  webSocketPublicClient
+})
 
 // ** Pace Loader
 if (themeConfig.routingLoader) {
@@ -117,20 +154,20 @@ const App = (props: ExtendedAppProps) => {
   const aclAbilities = Component.acl ?? defaultACLObj
 
   return (
-    <Provider store={store}>
-      <CacheProvider value={emotionCache}>
-        <Head>
-          <title>{`${themeConfig.templateName} - NFT Course`}</title>
-          <meta name='description' content={`${themeConfig.templateName} – NFT Course.`} />
-          <meta name='keywords' content='Material Design, MUI, NFT' />
-          <meta name='viewport' content='initial-scale=1, width=device-width' />
-        </Head>
+    <WagmiConfig config={wagmiConfig}>
+      <Provider store={store}>
+        <CacheProvider value={emotionCache}>
+          <Head>
+            <title>{`${themeConfig.templateName} - NFT Course`}</title>
+            <meta name='description' content={`${themeConfig.templateName} – NFT Course.`} />
+            <meta name='keywords' content='Material Design, MUI, NFT' />
+            <meta name='viewport' content='initial-scale=1, width=device-width' />
+          </Head>
 
-        <AuthProvider>
-          <SettingsProvider {...(setConfig ? { pageSettings: setConfig() } : {})}>
-            <SettingsConsumer>
-              {({ settings }) => {
-                return (
+          <AuthProvider>
+            <SettingsProvider {...(setConfig ? { pageSettings: setConfig() } : {})}>
+              <SettingsConsumer>
+                {({ settings }) => (
                   <ThemeComponent settings={settings}>
                     <Guard authGuard={authGuard} guestGuard={guestGuard}>
                       <AclGuard aclAbilities={aclAbilities} guestGuard={guestGuard} authGuard={authGuard}>
@@ -141,13 +178,13 @@ const App = (props: ExtendedAppProps) => {
                       <Toaster position={settings.toastPosition} toastOptions={{ className: 'react-hot-toast' }} />
                     </ReactHotToast>
                   </ThemeComponent>
-                )
-              }}
-            </SettingsConsumer>
-          </SettingsProvider>
-        </AuthProvider>
-      </CacheProvider>
-    </Provider>
+                )}
+              </SettingsConsumer>
+            </SettingsProvider>
+          </AuthProvider>
+        </CacheProvider>
+      </Provider>
+    </WagmiConfig>
   )
 }
 
