@@ -4,6 +4,9 @@ import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 
+// ** Constant Imports
+import SwitchNetworkModal from 'src/views/shared/SwitchNetworkModal'
+
 // ** Types
 import { ProjectType } from 'src/types/api/projectTypes'
 
@@ -23,6 +26,8 @@ const MintMainSection = (props: Props) => {
           <CardContent>123</CardContent>
         </Card>
       </Grid>
+
+      <SwitchNetworkModal initProjectEntity={initProjectEntity} />
     </Grid>
   )
 }
