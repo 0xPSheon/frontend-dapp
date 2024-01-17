@@ -4,6 +4,7 @@ import { PhaseType } from 'src/types/mint/phaseTypes'
 export type ProjectType = {
   id: number
   displayName: string
+  useChainName: string
   description?: string
   contractAddress?: string
   phases: PhaseType[]
